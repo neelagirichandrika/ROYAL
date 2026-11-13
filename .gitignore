@@ -1,0 +1,16 @@
+node_modules/
+public/assets/players/
+dist/
+.DS_Store
+Thumbs.db
+npm-debug.log*
+
+# Private data and secrets
+.env
+.env.*
+!.env.example
+data/
+node_modules/
+
+# Player images excluded until publishing rights are verified
+site-assets/

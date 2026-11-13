@@ -1,0 +1,17 @@
+{
+  "name": "project-rr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first RR cricket pressure performance intelligence",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check src/analysis.js && node --check public/app.js && node --check scripts/acquire-player-images.js && node --check scripts/build-frontend.js",
+    "build:pages": "node scripts/build-frontend.js",
+    "images:acquire": "node scripts/acquire-player-images.js",
+    "images:report": "node scripts/acquire-player-images.js --report",
+    "images:review": "node scripts/acquire-player-images.js --review"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
