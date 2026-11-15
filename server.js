@@ -1,10 +1,10 @@
-const http = require('node:http');
+﻿const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { loadDataset } = require('./src/analysis');
 
 const PORT = Number(process.env.PORT || 4173);
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const ALLOWED_ORIGIN = String(process.env.ALLOWED_ORIGIN || '').replace(/\/+$/, '');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -107,3 +107,4 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => console.log(`Project RR is ready at http://${HOST}:${PORT}`));
+
