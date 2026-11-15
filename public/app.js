@@ -1,5 +1,5 @@
-const state = { meta: null, view: 'overview', timer: null, searchTimer: null, format: 'All', season: 'All', threshold: 0.45, minimumBalls: 30, minimumMatches: 3, analysis: null, pressureMatches: [], playerId: null, playerProfile: null, compareId: null };
-const IS_GITHUB_PAGES = location.hostname === 'neelagirichandrika.github.io' && location.pathname.startsWith('/rr/');
+﻿const state = { meta: null, view: 'overview', timer: null, searchTimer: null, format: 'All', season: 'All', threshold: 0.45, minimumBalls: 30, minimumMatches: 3, analysis: null, pressureMatches: [], playerId: null, playerProfile: null, compareId: null };
+const IS_GITHUB_PAGES = location.hostname === 'neelagirichandrika.github.io';
 const API_BASE_URL = String(window.RR_CONFIG?.apiBaseUrl || '').replace(/\/+$/, '');
 const $ = (selector) => document.querySelector(selector);
 const fmt = (value, digits = 0) => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
@@ -107,7 +107,7 @@ async function searchPlayerOptions(query, target = '#player-search-results') {
   if (query.trim().length < 2) { host.classList.add('hidden'); host.innerHTML = ''; return; }
   try {
     const players = await fetchJson(`/api/players?query=${encodeURIComponent(query)}&limit=10`);
-    host.innerHTML = players.length ? players.map((player) => `<button type="button" role="option" data-player-id="${escapeHtml(player.id)}">${player.photoUrl ? `<img class="search-player-thumb" src="${escapeHtml(player.photoUrl)}" alt="" loading="lazy">` : `<span class="search-player-thumb search-player-initials">${escapeHtml(player.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase())}</span>`}<b>${escapeHtml(player.name)}</b><span>${escapeHtml(player.teams.join(' · ') || player.formats.join(' · '))}</span><small>ID ${escapeHtml(player.id)}</small></button>`).join('') : '<div class="search-empty">No matching player or supplied team.</div>';
+    host.innerHTML = players.length ? players.map((player) => `<button type="button" role="option" data-player-id="${escapeHtml(player.id)}">${player.photoUrl ? `<img class="search-player-thumb" src="${escapeHtml(player.photoUrl)}" alt="" loading="lazy">` : `<span class="search-player-thumb search-player-initials">${escapeHtml(player.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase())}</span>`}<b>${escapeHtml(player.name)}</b><span>${escapeHtml(player.teams.join(' Â· ') || player.formats.join(' Â· '))}</span><small>ID ${escapeHtml(player.id)}</small></button>`).join('') : '<div class="search-empty">No matching player or supplied team.</div>';
     host.classList.remove('hidden');
   } catch (error) {
     host.innerHTML = `<div class="search-empty">Search unavailable: ${escapeHtml(error.message)}</div>`;
@@ -125,7 +125,7 @@ async function openPlayer(playerId) {
 }
 
 function valueOrDash(value, digits = 1) {
-  return value === null || value === undefined || !Number.isFinite(Number(value)) ? '—' : fmt(value, digits);
+  return value === null || value === undefined || !Number.isFinite(Number(value)) ? 'â€”' : fmt(value, digits);
 }
 
 function statGrid(target, items) {
@@ -142,26 +142,26 @@ async function loadPlayerProfile() {
     $('#profile-name').innerHTML = `${escapeHtml(p.name)} <em>profile.</em>`;
     $('#dossier-name').textContent = p.name;
     $('#profile-summary').textContent = `${p.scope.matches} player matches in ${p.scope.format === 'All' ? 'all supplied formats' : p.scope.format}, ${p.scope.season === 'All' ? 'all seasons' : p.scope.season}. Historical evidence only.`;
-    $('#profile-scope').textContent = `${p.scope.format.toUpperCase()} · ${p.scope.season === 'All' ? 'ALL SEASONS' : p.scope.season} · PRESSURE ≥ ${Number(p.scope.threshold).toFixed(2)}`;
-    $('#profile-coverage').textContent = `${p.scope.matches} player matches · ${p.identity.competitions.length} competitions in player record`;
-    $('#profile-pressure-scope').textContent = `Chase innings only · pressure index ≥ ${Number(p.scope.threshold).toFixed(2)} · sample reliability shown.`;
+    $('#profile-scope').textContent = `${p.scope.format.toUpperCase()} Â· ${p.scope.season === 'All' ? 'ALL SEASONS' : p.scope.season} Â· PRESSURE â‰¥ ${Number(p.scope.threshold).toFixed(2)}`;
+    $('#profile-coverage').textContent = `${p.scope.matches} player matches Â· ${p.identity.competitions.length} competitions in player record`;
+    $('#profile-pressure-scope').textContent = `Chase innings only Â· pressure index â‰¥ ${Number(p.scope.threshold).toFixed(2)} Â· sample reliability shown.`;
     $('#profile-monogram').textContent = p.photo.initials || 'RR';
     $('#profile-monogram').innerHTML = p.photo.verifiedUrl
       ? `<img src="${escapeHtml(p.photo.verifiedUrl)}" alt="Portrait of ${escapeHtml(p.name)}" loading="lazy" onerror="this.remove()">`
       : escapeHtml(p.photo.initials || 'RR');
     const heroPhoto = $('#profile-monogram img');
     if (heroPhoto) heroPhoto.addEventListener('error', () => { $('#profile-monogram').textContent = p.photo.initials || 'RR'; }, { once: true });
-    $('#dossier-affiliation').textContent = p.identity.teams.length ? p.identity.teams.join(' · ') : 'Team affiliation not supplied';
+    $('#dossier-affiliation').textContent = p.identity.teams.length ? p.identity.teams.join(' Â· ') : 'Team affiliation not supplied';
     $('#dossier-role').textContent = 'Not supplied';
     const styles = [...p.identity.battingStyles.map((x) => `Bat: ${x}`), ...p.identity.bowlingStyles.map((x) => `Bowl: ${x}`)];
-    $('#dossier-styles').textContent = styles.length ? styles.join(' · ') : 'Not supplied';
+    $('#dossier-styles').textContent = styles.length ? styles.join(' Â· ') : 'Not supplied';
     $('#dossier-photo-source').innerHTML = p.photo.sourcePageUrl
-      ? `<a href="${escapeHtml(p.photo.sourcePageUrl)}" target="_blank" rel="noreferrer">${escapeHtml(p.photo.attribution || 'Wikimedia Commons')}</a> · ${p.photo.licenseUrl ? `<a href="${escapeHtml(p.photo.licenseUrl)}" target="_blank" rel="noreferrer">${escapeHtml(p.photo.license || 'License')}</a>` : escapeHtml(p.photo.license || '')}`
+      ? `<a href="${escapeHtml(p.photo.sourcePageUrl)}" target="_blank" rel="noreferrer">${escapeHtml(p.photo.attribution || 'Wikimedia Commons')}</a> Â· ${p.photo.licenseUrl ? `<a href="${escapeHtml(p.photo.licenseUrl)}" target="_blank" rel="noreferrer">${escapeHtml(p.photo.license || 'License')}</a>` : escapeHtml(p.photo.license || '')}`
       : 'Verified photo not available';
     $('#dossier-tags').innerHTML = [...p.identity.formats, ...p.identity.seasons].map((tag) => `<span>${escapeHtml(tag)}</span>`).join('');
     statGrid('#profile-batting', [
       ['Matches', fmt(b.matches)], ['Innings', fmt(b.innings)], ['Runs', fmt(b.runs)], ['Highest', valueOrDash(b.highestScore, 0)],
-      ['Dismissals', fmt(b.dismissals)], ['Average¹', valueOrDash(b.average)], ['Strike rate', valueOrDash(b.strikeRate)], ['Balls faced', fmt(b.ballsFaced)],
+      ['Dismissals', fmt(b.dismissals)], ['AverageÂ¹', valueOrDash(b.average)], ['Strike rate', valueOrDash(b.strikeRate)], ['Balls faced', fmt(b.ballsFaced)],
       ['Fours', fmt(b.fours)], ['Sixes', fmt(b.sixes)], ['Boundary runs %', valueOrDash(b.boundaryRunShare)], ['Dot balls %', valueOrDash(b.dotBallPercentage)],
     ]);
     statGrid('#profile-bowling', [
@@ -177,9 +177,9 @@ async function loadPlayerProfile() {
       ['Pressure runs conceded', fmt(pw.runsConceded, 0)], ['Pressure legal balls', fmt(pw.legalBalls)], ['Pressure economy', valueOrDash(pw.economy)], ['Pressure wickets', fmt(pw.wickets)],
       ['Pressure appearances', fmt(pw.appearances)], ['Baseline runs conceded', fmt(pw.baselineRunsConceded, 0)], ['Baseline economy', valueOrDash(pw.baselineEconomy)], ['Reliability factor', `${valueOrDash(pw.reliability * 100)}%`],
     ]);
-    const phaseRow = (name, value, metrics) => `<div class="phase-row"><b>${escapeHtml(name)}</b><span>${metrics.map(([label, number]) => `${escapeHtml(label)} ${escapeHtml(String(number))}`).join(' · ')}</span><small>${escapeHtml(String(value))}</small></div>`;
+    const phaseRow = (name, value, metrics) => `<div class="phase-row"><b>${escapeHtml(name)}</b><span>${metrics.map(([label, number]) => `${escapeHtml(label)} ${escapeHtml(String(number))}`).join(' Â· ')}</span><small>${escapeHtml(String(value))}</small></div>`;
     $('#profile-phases-batting').innerHTML = ['powerplay', 'middle', 'death'].map((key) => { const x = p.phases.batting[key]; return x ? phaseRow(key, `${valueOrDash(x.strikeRate)} SR`, [['runs', fmt(x.runs, 0)], ['balls', fmt(x.balls)], ['matches', fmt(x.matches)]]) : phaseRow(key, 'No data', []); }).join('');
-    $('#profile-phases-bowling').innerHTML = ['powerplay', 'middle', 'death'].map((key) => { const x = p.phases.bowling[key]; return x ? phaseRow(key, `${fmt(x.wickets)} wkts · ${valueOrDash(x.economy)} econ`, [['balls', fmt(x.legalBalls)], ['matches', fmt(x.matches)]]) : phaseRow(key, 'No data', []); }).join('');
+    $('#profile-phases-bowling').innerHTML = ['powerplay', 'middle', 'death'].map((key) => { const x = p.phases.bowling[key]; return x ? phaseRow(key, `${fmt(x.wickets)} wkts Â· ${valueOrDash(x.economy)} econ`, [['balls', fmt(x.legalBalls)], ['matches', fmt(x.matches)]]) : phaseRow(key, 'No data', []); }).join('');
     const segmentTable = (rows) => rows.length ? `<table><thead><tr><th>SEASON / COMPETITION</th><th>M</th><th>RUNS</th><th>BAT SR</th><th>WKTS</th><th>BOWL ECON</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${escapeHtml(x.label)}</td><td>${fmt(x.matches)}</td><td>${fmt(x.battingRuns)}</td><td>${valueOrDash(x.battingStrikeRate)}</td><td>${fmt(x.bowlingWickets)}</td><td>${valueOrDash(x.bowlingEconomy)}</td></tr>`).join('')}</tbody></table>` : '<div class="segment-empty">No player records in this scope.</div>';
     $('#profile-season-table').innerHTML = segmentTable(p.seasonStats);
     $('#profile-competition-table').innerHTML = segmentTable(p.competitionStats);
@@ -217,9 +217,9 @@ async function renderPlayerComparison() {
       ['Pressure batting SR', a.pressure.batting.strikeRate, b.pressure.batting.strikeRate, 1], ['Pressure batting balls', a.pressure.batting.balls, b.pressure.batting.balls, 0],
       ['Bowling wickets', a.bowling.wickets, b.bowling.wickets, 0], ['Bowling economy', a.bowling.economy, b.bowling.economy, 1], ['Pressure bowling economy', a.pressure.bowling.economy, b.pressure.bowling.economy, 1],
     ];
-    const show = (value, digits) => value === null || value === undefined ? '—' : fmt(value, digits);
+    const show = (value, digits) => value === null || value === undefined ? 'â€”' : fmt(value, digits);
     const comparison = $('#profile-comparison');
-    comparison.innerHTML = `<div class="compare-player-head"><div class="compare-avatar">${a.photo.verifiedUrl ? `<img src="${escapeHtml(a.photo.verifiedUrl)}" alt="" loading="lazy">` : escapeHtml(a.photo.initials)}</div><div><b>${escapeHtml(a.name)}</b><span>${escapeHtml(a.identity.teams.join(' · ') || 'Team not supplied')}</span></div><i>VS</i><div class="compare-avatar compare-avatar-alt">${b.photo.verifiedUrl ? `<img src="${escapeHtml(b.photo.verifiedUrl)}" alt="" loading="lazy">` : escapeHtml(b.photo.initials)}</div><div><b>${escapeHtml(b.name)}</b><span>${escapeHtml(b.identity.teams.join(' · ') || 'Team not supplied')}</span></div></div><div class="compare-metrics"><div class="compare-metric compare-header"><span>MEASURE</span><b>${escapeHtml(a.name)}</b><b>${escapeHtml(b.name)}</b><span>Δ (B−A)</span></div>${metrics.map(([label, left, right, digits]) => `<div class="compare-metric"><span>${escapeHtml(label)}</span><b>${show(left, digits)}</b><b>${show(right, digits)}</b><span>${left === null || right === null ? '—' : `${Number(right) - Number(left) >= 0 ? '+' : ''}${show(Number(right) - Number(left), digits)}`}</span></div>`).join('')}</div><p class="compare-note">Observed sample sizes: ${fmt(a.scope.matches)} vs ${fmt(b.scope.matches)} player matches · role is not supplied. Differences are descriptive; they do not adjust for role, opposition, venue, or era.</p>`;
+    comparison.innerHTML = `<div class="compare-player-head"><div class="compare-avatar">${a.photo.verifiedUrl ? `<img src="${escapeHtml(a.photo.verifiedUrl)}" alt="" loading="lazy">` : escapeHtml(a.photo.initials)}</div><div><b>${escapeHtml(a.name)}</b><span>${escapeHtml(a.identity.teams.join(' Â· ') || 'Team not supplied')}</span></div><i>VS</i><div class="compare-avatar compare-avatar-alt">${b.photo.verifiedUrl ? `<img src="${escapeHtml(b.photo.verifiedUrl)}" alt="" loading="lazy">` : escapeHtml(b.photo.initials)}</div><div><b>${escapeHtml(b.name)}</b><span>${escapeHtml(b.identity.teams.join(' Â· ') || 'Team not supplied')}</span></div></div><div class="compare-metrics"><div class="compare-metric compare-header"><span>MEASURE</span><b>${escapeHtml(a.name)}</b><b>${escapeHtml(b.name)}</b><span>Î” (Bâˆ’A)</span></div>${metrics.map(([label, left, right, digits]) => `<div class="compare-metric"><span>${escapeHtml(label)}</span><b>${show(left, digits)}</b><b>${show(right, digits)}</b><span>${left === null || right === null ? 'â€”' : `${Number(right) - Number(left) >= 0 ? '+' : ''}${show(Number(right) - Number(left), digits)}`}</span></div>`).join('')}</div><p class="compare-note">Observed sample sizes: ${fmt(a.scope.matches)} vs ${fmt(b.scope.matches)} player matches Â· role is not supplied. Differences are descriptive; they do not adjust for role, opposition, venue, or era.</p>`;
     comparison.classList.remove('hidden');
   } catch (error) {
     const comparison = $('#profile-comparison');
@@ -233,9 +233,9 @@ function setDatasetHeader(meta) {
   $('#metric-matches').textContent = fmt(meta.matches);
   const start = meta.dateRange?.start || '2022';
   const end = meta.dateRange?.end || '2026';
-  $('#metric-period').textContent = `${start.slice(0, 4)}–${end.slice(0, 4)}`;
-  $('#sidebar-period').textContent = `${meta.formats.join(' + ')} · ${start.slice(0, 4)}–${end.slice(0, 4)}`;
-  $('#hero-season-range').textContent = `${start.slice(0, 4)}–${end.slice(0, 4)}`;
+  $('#metric-period').textContent = `${start.slice(0, 4)}â€“${end.slice(0, 4)}`;
+  $('#sidebar-period').textContent = `${meta.formats.join(' + ')} Â· ${start.slice(0, 4)}â€“${end.slice(0, 4)}`;
+  $('#hero-season-range').textContent = `${start.slice(0, 4)}â€“${end.slice(0, 4)}`;
   $('#hero-match-count').textContent = fmt(meta.matches);
   renderSeasonChart(meta);
   renderQuality(meta);
@@ -267,7 +267,7 @@ function renderQuality(meta) {
     ['Malformed numeric delivery fields', fmt(q.invalidNumericRows), q.invalidNumericRows ? 'warn' : 'passed'],
   ];
   $('#integrity-summary').innerHTML = checks.slice(2).map(([label, value]) => `<div><b>${value}</b><span>${label}</span></div>`).join('');
-  $('#quality-check-list').innerHTML = checks.map(([label, value, status]) => `<div class="quality-check"><span class="check-icon ${status === 'warn' ? 'warn' : ''}">${status === 'warn' ? '!' : '✓'}</span><span>${escapeHtml(label)}</span><b class="${status === 'warn' ? 'warn' : ''}">${escapeHtml(value)}</b></div>`).join('');
+  $('#quality-check-list').innerHTML = checks.map(([label, value, status]) => `<div class="quality-check"><span class="check-icon ${status === 'warn' ? 'warn' : ''}">${status === 'warn' ? '!' : 'âœ“'}</span><span>${escapeHtml(label)}</span><b class="${status === 'warn' ? 'warn' : ''}">${escapeHtml(value)}</b></div>`).join('');
   const inventory = [
     ['ball_by_ball.csv', `${fmt(meta.deliveries)} delivery records`, 'DELIVERY ENGINE'],
     ['matches.csv', `${fmt(meta.matches)} match records`, 'MATCH CONTEXT'],
@@ -282,7 +282,7 @@ function renderQuality(meta) {
     ['PLAYERS', fmt(photos.totalPlayers)], ['VERIFIED', fmt(photos.verified)], ['MISSING', fmt(photos.missing)],
     ['NEEDS REVIEW', fmt(photos.unverified)], ['BROKEN LOCAL FILES', fmt(photos.broken)],
   ].map(([label, value]) => `<div><span>${label}</span><b>${value}</b></div>`).join('');
-  $('#player-image-sources').textContent = `IMAGE SOURCES · ${Object.entries(photos.sources || {}).map(([source, count]) => `${source} ${fmt(count)}`).join(' · ') || 'No verified source entries yet'}`;
+  $('#player-image-sources').textContent = `IMAGE SOURCES Â· ${Object.entries(photos.sources || {}).map(([source, count]) => `${source} ${fmt(count)}`).join(' Â· ') || 'No verified source entries yet'}`;
   $('#caveat-list').innerHTML = q.caveats.map((text, index) => `<div class="caveat-item"><span class="caveat-number">0${index + 1} / LIMITATION</span>${escapeHtml(text)}</div>`).join('');
 }
 
@@ -333,7 +333,7 @@ function renderPressureMatchOptions() {
   const query = $('#pressure-match-search').value.trim().toLocaleLowerCase();
   const matches = state.pressureMatches.filter((match) => `${match.date} ${match.label} ${match.format} ${match.venue || ''}`.toLocaleLowerCase().includes(query));
   select.innerHTML = matches.length
-    ? matches.map((match) => `<option value="${escapeHtml(match.id)}">${escapeHtml(match.date)} · ${escapeHtml(match.label)} · ${escapeHtml(match.format)}</option>`).join('')
+    ? matches.map((match) => `<option value="${escapeHtml(match.id)}">${escapeHtml(match.date)} Â· ${escapeHtml(match.label)} Â· ${escapeHtml(match.format)}</option>`).join('')
     : '<option value="">No matches found</option>';
   if (matches.some((match) => match.id === previous)) select.value = previous;
   else if (matches.length) select.value = matches[0].id;
@@ -355,14 +355,14 @@ async function loadPressureField() {
 function renderPressureField(field) {
   const last = field.final;
   $('#pressure-match-title').textContent = field.match.label;
-  $('#pressure-match-context').textContent = `${field.match.date} · ${field.match.format || 'T20'} · ${field.match.venue || 'Venue not supplied'}`;
+  $('#pressure-match-context').textContent = `${field.match.date} Â· ${field.match.format || 'T20'} Â· ${field.match.venue || 'Venue not supplied'}`;
   $('#pressure-match-subtitle').textContent = field.match.result || 'Actual chase-state sequence from the supplied deliveries.';
   $('#field-threshold').textContent = Number(field.threshold).toFixed(2);
   $('#field-target').textContent = fmt(field.target);
-  $('#field-score').textContent = last ? `${fmt(last.score)} / ${fmt(last.wickets)}` : '—';
-  $('#field-wickets').textContent = last ? fmt(last.wicketsRemaining) : '—';
-  $('#field-balls').textContent = last ? fmt(last.ballsRemaining) : '—';
-  $('#field-rrr').textContent = last?.requiredRate == null ? '—' : fmt(last.requiredRate, 1);
+  $('#field-score').textContent = last ? `${fmt(last.score)} / ${fmt(last.wickets)}` : 'â€”';
+  $('#field-wickets').textContent = last ? fmt(last.wicketsRemaining) : 'â€”';
+  $('#field-balls').textContent = last ? fmt(last.ballsRemaining) : 'â€”';
+  $('#field-rrr').textContent = last?.requiredRate == null ? 'â€”' : fmt(last.requiredRate, 1);
   $('#pressure-field-note').textContent = field.limitation;
   const maxPressure = Math.max(.02, ...field.innings.map((over) => Number(over.pressureIndex || 0)));
   $('#pressure-field-chart').innerHTML = field.innings.map((over) => {
@@ -383,8 +383,8 @@ function renderAnalysis(analysis) {
   $('#top-scope').textContent = $('#scope-label').textContent;
   $('#batter-count').textContent = fmt(analysis.batterEligible);
   $('#bowler-count').textContent = fmt(analysis.bowlerEligible);
-  $('#minimum-note-bat').textContent = `${analysis.settings.minimumBalls} BALLS · ${analysis.settings.minimumMatches} MATCHES`;
-  $('#minimum-note-bowl').textContent = `${analysis.settings.minimumBalls} BALLS · ${analysis.settings.minimumMatches} MATCHES`;
+  $('#minimum-note-bat').textContent = `${analysis.settings.minimumBalls} BALLS Â· ${analysis.settings.minimumMatches} MATCHES`;
+  $('#minimum-note-bowl').textContent = `${analysis.settings.minimumBalls} BALLS Â· ${analysis.settings.minimumMatches} MATCHES`;
   const eligibilityValues = document.querySelectorAll('.eligibility-stat b');
   if (eligibilityValues[0]) eligibilityValues[0].textContent = String(analysis.settings.minimumBalls);
   if (eligibilityValues[1]) eligibilityValues[1].textContent = String(analysis.settings.minimumMatches);
@@ -403,7 +403,7 @@ function renderLeaderList(selector, players, role) {
     host.innerHTML = '<div class="no-eligible"><b>No eligible players in this scope</b><span>Try all seasons or lower the pressure threshold.</span></div>';
     return;
   }
-  host.innerHTML = players.slice(0, 5).map((player, index) => `<div class="leader-row"><span class="rank-no">${String(index + 1).padStart(2, '0')}</span><span class="leader-avatar">${player.photoUrl ? `<img src="${escapeHtml(player.photoUrl)}" alt="" loading="lazy">` : escapeHtml(player.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase())}</span><div><button class="leader-name player-profile-open" data-player-id="${escapeHtml(player.playerId)}">${escapeHtml(player.name)}</button><div class="leader-sub">${fmt(player.pressureMatches)} MATCHES · ${fmt(player.pressureBalls)} BALLS</div></div><span class="leader-impact ${player.impact < 0 ? '' : 'impact-positive'}">${signed(player.impact)}</span><span class="leader-sample">${fmt(player.pressureRate, 1)}<small>${role === 'batter' ? 'PRESS SR' : 'PRESS ECON'}</small></span></div>`).join('');
+  host.innerHTML = players.slice(0, 5).map((player, index) => `<div class="leader-row"><span class="rank-no">${String(index + 1).padStart(2, '0')}</span><span class="leader-avatar">${player.photoUrl ? `<img src="${escapeHtml(player.photoUrl)}" alt="" loading="lazy">` : escapeHtml(player.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase())}</span><div><button class="leader-name player-profile-open" data-player-id="${escapeHtml(player.playerId)}">${escapeHtml(player.name)}</button><div class="leader-sub">${fmt(player.pressureMatches)} MATCHES Â· ${fmt(player.pressureBalls)} BALLS</div></div><span class="leader-impact ${player.impact < 0 ? '' : 'impact-positive'}">${signed(player.impact)}</span><span class="leader-sample">${fmt(player.pressureRate, 1)}<small>${role === 'batter' ? 'PRESS SR' : 'PRESS ECON'}</small></span></div>`).join('');
 }
 
 function signed(value, digits = 1) { return `${Number(value) >= 0 ? '+' : ''}${fmt(value, digits)}`; }
@@ -422,7 +422,7 @@ function renderTable(selector, players, role) {
     const intervalPos = player.confidenceLow === null ? 50 : Math.max(4, Math.min(96, (player.confidenceLow / (Math.abs(player.confidenceHigh) + Math.abs(player.confidenceLow) + .1) * 92) + 50));
     const initials = player.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
     const avatar = player.photoUrl ? `<img src="${escapeHtml(player.photoUrl)}" alt="" loading="lazy">` : escapeHtml(initials);
-    return `<tr><td><div class="rank-cell"><span class="table-rank ${index < 3 ? 'top-rank' : ''}">${String(index + 1).padStart(2, '0')}</span><span class="table-player-avatar">${avatar}</span><div><button class="player-name player-profile-open" data-player-id="${escapeHtml(player.playerId)}">${escapeHtml(player.name)}</button><span class="player-id">PLAYER ID ${escapeHtml(player.playerId)}</span></div></div></td><td><div class="impact-cell ${negative ? 'negative' : ''}">${signed(impact)}<div class="impact-meter"><i class="${negative ? 'negative' : ''}" style="width:${width}%"></i></div></div></td><td><span class="table-rate">${rate}<small>${role === 'batter' ? 'RUNS / 100 BALLS' : 'RUNS / 100 LEGAL'}</small></span></td><td><span class="table-rate">${baseline}<small>BASELINE · ${fmt(player.baselineBalls)} BALLS / ${fmt(player.baselineMatches)} MATCHES</small></span></td><td><span class="table-rate">${fmt(player.pressureWicketRate, 1)}<small>${role === 'batter' ? 'OUTS' : 'WICKETS'} / 100 BALLS</small><small>BASELINE ${fmt(player.baselineWicketRate, 1)}</small></span></td><td><span class="sample-cell">${fmt(player.pressureBalls)} <small>${role === 'batter' ? 'BALLS FACED' : 'LEGAL BALLS'}</small><small>${fmt(player.pressureMatches)} PRESSURE MATCHES</small></span></td><td><span class="interval-cell">${interval}<div class="interval-bar"><i style="left:${intervalPos}%"></i></div></span></td></tr>`;
+    return `<tr><td><div class="rank-cell"><span class="table-rank ${index < 3 ? 'top-rank' : ''}">${String(index + 1).padStart(2, '0')}</span><span class="table-player-avatar">${avatar}</span><div><button class="player-name player-profile-open" data-player-id="${escapeHtml(player.playerId)}">${escapeHtml(player.name)}</button><span class="player-id">PLAYER ID ${escapeHtml(player.playerId)}</span></div></div></td><td><div class="impact-cell ${negative ? 'negative' : ''}">${signed(impact)}<div class="impact-meter"><i class="${negative ? 'negative' : ''}" style="width:${width}%"></i></div></div></td><td><span class="table-rate">${rate}<small>${role === 'batter' ? 'RUNS / 100 BALLS' : 'RUNS / 100 LEGAL'}</small></span></td><td><span class="table-rate">${baseline}<small>BASELINE Â· ${fmt(player.baselineBalls)} BALLS / ${fmt(player.baselineMatches)} MATCHES</small></span></td><td><span class="table-rate">${fmt(player.pressureWicketRate, 1)}<small>${role === 'batter' ? 'OUTS' : 'WICKETS'} / 100 BALLS</small><small>BASELINE ${fmt(player.baselineWicketRate, 1)}</small></span></td><td><span class="sample-cell">${fmt(player.pressureBalls)} <small>${role === 'batter' ? 'BALLS FACED' : 'LEGAL BALLS'}</small><small>${fmt(player.pressureMatches)} PRESSURE MATCHES</small></span></td><td><span class="interval-cell">${interval}<div class="interval-bar"><i style="left:${intervalPos}%"></i></div></span></td></tr>`;
   }).join('');
 }
 
@@ -449,3 +449,4 @@ async function start() {
 }
 
 start();
+
