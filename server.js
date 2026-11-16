@@ -46,8 +46,13 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/api/analysis') {
     const numberParam = (name, fallback, min, max) => {
-      const value = Number(url.searchParams.get(name));
-      return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+      const rawValue = url.searchParams.get(name);
+      if (rawValue === null || rawValue.trim() === '') return fallback;
+
+      const value = Number(rawValue);
+      return Number.isFinite(value)
+        ? Math.max(min, Math.min(max, value))
+        : fallback;
     };
     const analysis = model.calculate({
       format: url.searchParams.get('format') || 'All',
@@ -107,4 +112,3 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => console.log(`Project RR is ready at http://${HOST}:${PORT}`));
-

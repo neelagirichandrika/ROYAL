@@ -12,35 +12,74 @@ const files = {
   playingEleven: 'playing_eleven.csv',
 };
 
-function parseCsv(text) {
+function parseCsv(text, selectedColumns = null) {
   const rows = [];
   let row = [];
   let value = '';
   let quoted = false;
+
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
+
     if (quoted) {
-      if (char === '"' && text[i + 1] === '"') { value += '"'; i += 1; }
-      else if (char === '"') quoted = false;
-      else value += char;
-    } else if (char === '"') quoted = true;
-    else if (char === ',') { row.push(value); value = ''; }
-    else if (char === '\n') {
+      if (char === '"' && text[i + 1] === '"') {
+        value += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        value += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(value);
+      value = '';
+    } else if (char === '\n') {
       row.push(value.replace(/\r$/, ''));
       if (row.length > 1 || row[0] !== '') rows.push(row);
-      row = []; value = '';
-    } else value += char;
+      row = [];
+      value = '';
+    } else {
+      value += char;
+    }
   }
-  if (value.length || row.length) { row.push(value.replace(/\r$/, '')); rows.push(row); }
+
+  if (value.length || row.length) {
+    row.push(value.replace(/\r$/, ''));
+    rows.push(row);
+  }
+
   if (!rows.length) return [];
+
   const headers = rows.shift().map((header) => header.trim());
-  return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
+  const selected = selectedColumns
+    ? selectedColumns.map((name) => headers.indexOf(name))
+    : headers.map((_, index) => index);
+
+  if (selected.some((index) => index < 0)) {
+    throw new Error('A required CSV column is missing.');
+  }
+
+  return rows.map((values) => {
+    const record = {};
+    for (const index of selected) {
+      record[headers[index]] = values[index] ?? '';
+    }
+    return record;
+  });
 }
 
-function readCsv(filename) {
+function readCsv(filename, selectedColumns = null) {
   const fullPath = path.join(DATA_DIR, filename);
-  if (!fs.existsSync(fullPath)) throw new Error(`Required dataset not found: ${fullPath}`);
-  return parseCsv(fs.readFileSync(fullPath, 'utf8').replace(/^\uFEFF/, ''));
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Required dataset not found: ${fullPath}`);
+  }
+
+  return parseCsv(
+    fs.readFileSync(fullPath, 'utf8').replace(/^\uFEFF/, ''),
+    selectedColumns
+  );
 }
 
 const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -122,7 +161,31 @@ function loadDataset() {
   const started = Date.now();
   const competitions = readCsv(files.competitions);
   const matches = readCsv(files.matches);
-  const balls = readCsv(files.balls);
+  const balls = readCsv(files.balls, [
+    'match_id',
+    'innings',
+    'overid',
+    'over_ball_num',
+    'innings_ball_num',
+    'striker_id',
+    'striker_name',
+    'non_striker_id',
+    'non_striker_name',
+    'bowler_id',
+    'bowler_name',
+    'batting_type',
+    'bowling_type',
+    'runs',
+    'is_four',
+    'is_six',
+    'is_wicket',
+    'dismissal_type',
+    'dismissed_player_id',
+    'extras_type',
+    'extras1_runs',
+    'extras_2_runs',
+    'pace_or_spin',
+  ]);
   const playerMappings = readCsv(files.players);
   let imageManifest = {};
   try { imageManifest = JSON.parse(fs.readFileSync(IMAGE_MANIFEST, 'utf8')); } catch { imageManifest = {}; }
@@ -190,17 +253,27 @@ function loadDataset() {
     const state = inningsState.get(inningKey);
     const legal = !['wide', 'overstep'].includes(String(ball.extras_type).toLowerCase());
     const wicket = bool(ball.is_wicket);
-    const before = {
-      legalBalls: state.legalBalls,
-      wickets: state.wickets,
-      score: state.score,
-    };
+    const beforeLegalBalls = state.legalBalls;
+    const beforeWickets = state.wickets;
+    const beforeScore = state.score;
 
     if (legal) state.legalBalls += 1;
     if (wicket) state.wickets += 1;
     state.score += totalRuns;
 
-    Object.assign(ball, { match, inningKey, legal, wicket, before, runs, extras, totalRuns });
+    // Store the three pre-delivery values directly. This avoids allocating
+    // one nested state object per delivery. The match and inningKey are
+    // looked up or rebuilt when needed instead of retained on every ball.
+    Object.assign(ball, {
+      legal,
+      wicket,
+      beforeLegalBalls,
+      beforeWickets,
+      beforeScore,
+      runs,
+      extras,
+      totalRuns,
+    });
     validBalls.push(ball);
   }
 
@@ -212,7 +285,7 @@ function loadDataset() {
   const validFormats = new Set(['T20', 'T20I']);
 
   for (const entry of validBalls) {
-    const { match, before } = entry;
+    const match = matchById.get(String(entry.match_id));
     if (number(entry.innings) !== 2 || !validFormats.has(match.match_format)) continue;
 
     const firstInningsRuns = runsByInnings.get(`${entry.match_id}:1`);
@@ -220,11 +293,11 @@ function loadDataset() {
     if (!target) { missingTargetChases += 1; continue; }
 
     const maxBalls = oversToBalls(match.second_inn_revised_overs || 20);
-    const ballsRemaining = Math.max(1, maxBalls - before.legalBalls);
-    const required = Math.max(0, target - before.score);
+    const ballsRemaining = Math.max(1, maxBalls - entry.beforeLegalBalls);
+    const required = Math.max(0, target - entry.beforeScore);
     const requiredRate = required * 6 / ballsRemaining;
     const ratePressure = clamp((requiredRate - 6) / 9);
-    const wicketPressure = clamp(before.wickets / 6);
+    const wicketPressure = clamp(entry.beforeWickets / 6);
     const latePressure = clamp((maxBalls - ballsRemaining) / Math.max(1, maxBalls * 0.75));
     const pressureScore = 0.65 * ratePressure + 0.2 * wicketPressure + 0.15 * latePressure;
     const pressure = pressureScore >= 0.45;
@@ -290,11 +363,11 @@ function loadDataset() {
       const ball = entry;
       if (String(ball.match_id) !== String(matchId) || number(ball.innings) !== 2) continue;
 
-      const ballsRemaining = Math.max(1, maxBalls - entry.before.legalBalls);
-      const requiredRuns = Math.max(0, target - entry.before.score);
+      const ballsRemaining = Math.max(1, maxBalls - entry.beforeLegalBalls);
+      const requiredRuns = Math.max(0, target - entry.beforeScore);
       const requiredRate = requiredRuns * 6 / ballsRemaining;
       const pressureIndex = 0.65 * clamp((requiredRate - 6) / 9)
-        + 0.2 * clamp(entry.before.wickets / 6)
+        + 0.2 * clamp(entry.beforeWickets / 6)
         + 0.15 * clamp((maxBalls - ballsRemaining) / Math.max(1, maxBalls * 0.75));
 
       const overNumber = Math.max(1, number(ball.overid));
@@ -318,9 +391,9 @@ function loadDataset() {
       summary.legalBalls += entry.legal ? 1 : 0;
       summary.pressureTotal += pressureIndex;
       summary.pressureDeliveries += pressureIndex >= threshold ? 1 : 0;
-      summary.score = entry.before.score + entry.totalRuns;
-      summary.wickets = entry.before.wickets + (entry.wicket ? 1 : 0);
-      summary.ballsRemaining = Math.max(0, maxBalls - entry.before.legalBalls - (entry.legal ? 1 : 0));
+      summary.score = entry.beforeScore + entry.totalRuns;
+      summary.wickets = entry.beforeWickets + (entry.wicket ? 1 : 0);
+      summary.ballsRemaining = Math.max(0, maxBalls - entry.beforeLegalBalls - (entry.legal ? 1 : 0));
       summary.requiredRuns = Math.max(0, target - summary.score);
       summary.requiredRate = summary.ballsRemaining ? summary.requiredRuns * 6 / summary.ballsRemaining : null;
     }
@@ -397,7 +470,7 @@ function loadDataset() {
 
   for (const entry of validBalls) {
     const ball = entry;
-    const { match } = entry;
+    const match = matchById.get(String(entry.match_id));
     const comp = competitionById.get(String(match.comp_id)) || {};
 
     const fields = [
@@ -621,7 +694,7 @@ function loadDataset() {
 
     for (const entry of validBalls) {
       const ball = entry;
-      const { match } = entry;
+      const match = matchById.get(String(entry.match_id));
       const id = String(playerId);
 
       if (!scoped(match)) continue;
@@ -638,10 +711,10 @@ function loadDataset() {
       let isPressure = false;
       if (inningNo === 2 && target && validFormats.has(match.match_format)) {
         const maxBalls = oversToBalls(matchContext.second_inn_revised_overs || 20);
-        const remaining = Math.max(1, maxBalls - entry.before.legalBalls);
-        const rrr = Math.max(0, target - entry.before.score) * 6 / remaining;
+        const remaining = Math.max(1, maxBalls - entry.beforeLegalBalls);
+        const rrr = Math.max(0, target - entry.beforeScore) * 6 / remaining;
         const score = 0.65 * clamp((rrr - 6) / 9)
-          + 0.2 * clamp(entry.before.wickets / 6)
+          + 0.2 * clamp(entry.beforeWickets / 6)
           + 0.15 * clamp((maxBalls - remaining) / Math.max(1, maxBalls * 0.75));
         isPressure = score >= Number(threshold);
       }
@@ -1081,7 +1154,7 @@ function loadDataset() {
 
     for (const entry of validBalls) {
       const ball = entry;
-      const { match } = entry;
+      const match = matchById.get(String(entry.match_id));
 
       if (number(ball.innings) !== 2 || !validFormats.has(match.match_format)) continue;
       if (format !== 'All' && match.match_format !== format) continue;
@@ -1092,12 +1165,12 @@ function loadDataset() {
       if (!targetScore) continue;
 
       const maxBalls = oversToBalls(match.second_inn_revised_overs || 20);
-      const ballsRemaining = Math.max(1, maxBalls - entry.before.legalBalls);
-      const needed = Math.max(0, targetScore - entry.before.score);
+      const ballsRemaining = Math.max(1, maxBalls - entry.beforeLegalBalls);
+      const needed = Math.max(0, targetScore - entry.beforeScore);
       const rrr = needed * 6 / ballsRemaining;
 
       const p = 0.65 * clamp((rrr - 6) / 9)
-        + 0.2 * clamp(entry.before.wickets / 6)
+        + 0.2 * clamp(entry.beforeWickets / 6)
         + 0.15 * clamp((maxBalls - ballsRemaining) / Math.max(1, maxBalls * 0.75));
 
       const pressured = p >= Number(threshold);
